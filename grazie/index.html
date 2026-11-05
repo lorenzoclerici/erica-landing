@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="it" data-page="thanks">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Richiesta ricevuta | Erica Srl</title>
+  <meta name="description" content="Abbiamo ricevuto la vostra richiesta di smaltimento rifiuti industriali. Un nostro referente vi ricontatterà.">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#13385E">
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+
+  <link rel="preload" href="../assets/fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../assets/fonts/barlow-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <!-- Stessi script della landing: il consenso scelto in precedenza resta valido e GTM funziona come sull'altra pagina -->
+  <script src="../assets/js/config.js" defer></script>
+  <script src="../assets/js/consent.js" defer></script>
+  <script src="../assets/js/tracking.js" defer></script>
+  <script src="../assets/js/ui.js" defer></script>
+</head>
+
+<body class="page-thanks">
+  <!-- Lo snippet <noscript> di GTM è volutamente omesso: vedi README.md (sezione Consenso). -->
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    </defs>
+  </svg>
+
+  <a class="skip-link" href="#contenuto">Vai al contenuto</a>
+
+  <header class="site-header">
+    <div class="container site-header__in">
+      <a class="site-header__logo" href="../" aria-label="Erica – Valore per l’ambiente">
+        <img src="../assets/img/logo-erica-bianco.svg" width="138" height="40" alt="Erica – Valore per l’ambiente">
+      </a>
+    </div>
+  </header>
+
+  <main id="contenuto" class="thanks">
+    <div class="container">
+      <div class="thanks__box">
+        <div class="thanks__icon"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></div>
+        <h1>Richiesta ricevuta</h1>
+        <p class="thanks__lead">Grazie: abbiamo ricevuto i vostri dati. Un nostro referente vi ricontatterà <span class="ph">{{TEMPI_DI_RISPOSTA}}</span> per valutare insieme il rifiuto e la soluzione più adatta.</p>
+
+        <ol class="next">
+          <li>
+            <span class="next__n" aria-hidden="true">1</span>
+            <div><h2>Verifichiamo la richiesta</h2><p>Controlliamo le informazioni sul rifiuto che ci avete indicato.</p></div>
+          </li>
+          <li>
+            <span class="next__n" aria-hidden="true">2</span>
+            <div><h2>Vi contattiamo</h2><p>Un nostro referente vi chiama o vi scrive per approfondire e chiedervi, se servono, altri dettagli.</p></div>
+          </li>
+          <li>
+            <span class="next__n" aria-hidden="true">3</span>
+            <div><h2>Vi proponiamo la soluzione</h2><p>Vi presentiamo la soluzione più adatta, bilanciando costo e tipologia di trattamento.</p></div>
+          </li>
+        </ol>
+
+        <p class="thanks__tip"><strong>Per velocizzare:</strong> tenete a portata di mano la scheda di sicurezza e le eventuali analisi del rifiuto.</p>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__in">
+      <div class="site-footer__brand">
+        <img src="../assets/img/logo-erica-bianco.svg" width="120" height="35" alt="Erica" loading="lazy">
+        <p><strong>Erica Srl</strong><br>
+          Sede legale e amministrativa:<br>Via Piave 23/25, 20873 Cavenago di Brianza (MB)</p>
+      </div>
+      <div>
+        <p>C.F. e P.IVA 02106220961</p>
+      </div>
+      <nav class="site-footer__legal" aria-label="Informative">
+        <a href="#" data-link="privacy" target="_blank" rel="noopener">Privacy Policy</a>
+        <a href="#" data-link="cookie" target="_blank" rel="noopener">Cookie Policy</a>
+        <button type="button" class="linklike" data-consent-open>Gestisci cookie</button>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
