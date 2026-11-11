@@ -436,3 +436,6 @@ h2, h3 { color: var(--blue); }
 
 /* Pagina di ringraziamento: nessuna barra fissa, footer senza spazio extra */
 .page-thanks .site-footer { padding-bottom: 44px; }
+
+/* Codice fiscale: mostrato in maiuscolo (il valore viene normalizzato anche da form.js) */
+.field input[name="tax_code"]:not(:placeholder-shown) { text-transform: uppercase; }

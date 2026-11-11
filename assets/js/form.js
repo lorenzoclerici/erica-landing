@@ -11,20 +11,18 @@
   var U = window.EricaUtil || { isPlaceholder: function () { return true; }, isLocal: false };
   var log = window.EricaLog || function () {};
 
-  /* ---------- Province italiane (107) ---------- */
-  var PROVINCES = ('AG:Agrigento|AL:Alessandria|AN:Ancona|AO:Aosta|AR:Arezzo|AP:Ascoli Piceno|AT:Asti|AV:Avellino|BA:Bari|BT:Barletta-Andria-Trani|BL:Belluno|BN:Benevento|BG:Bergamo|BI:Biella|BO:Bologna|BZ:Bolzano|BS:Brescia|BR:Brindisi|CA:Cagliari|CL:Caltanissetta|CB:Campobasso|CE:Caserta|CT:Catania|CZ:Catanzaro|CH:Chieti|CO:Como|CS:Cosenza|CR:Cremona|KR:Crotone|CN:Cuneo|EN:Enna|FM:Fermo|FE:Ferrara|FI:Firenze|FG:Foggia|FC:Forlì-Cesena|FR:Frosinone|GE:Genova|GO:Gorizia|GR:Grosseto|IM:Imperia|IS:Isernia|AQ:L’Aquila|SP:La Spezia|LT:Latina|LE:Lecce|LC:Lecco|LI:Livorno|LO:Lodi|LU:Lucca|MC:Macerata|MN:Mantova|MS:Massa-Carrara|MT:Matera|ME:Messina|MI:Milano|MO:Modena|MB:Monza e della Brianza|NA:Napoli|NO:Novara|NU:Nuoro|OR:Oristano|PD:Padova|PA:Palermo|PR:Parma|PV:Pavia|PG:Perugia|PU:Pesaro e Urbino|PE:Pescara|PC:Piacenza|PI:Pisa|PT:Pistoia|PN:Pordenone|PZ:Potenza|PO:Prato|RG:Ragusa|RA:Ravenna|RC:Reggio Calabria|RE:Reggio Emilia|RI:Rieti|RN:Rimini|RM:Roma|RO:Rovigo|SA:Salerno|SS:Sassari|SV:Savona|SI:Siena|SR:Siracusa|SO:Sondrio|SU:Sud Sardegna|TA:Taranto|TE:Teramo|TR:Terni|TO:Torino|TP:Trapani|TN:Trento|TV:Treviso|TS:Trieste|UD:Udine|VA:Varese|VE:Venezia|VB:Verbano-Cusio-Ossola|VC:Vercelli|VR:Verona|VV:Vibo Valentia|VI:Vicenza|VT:Viterbo')
-    .split('|').map(function (s) { var p = s.split(':'); return { code: p[0], name: p[1] }; })
-    .sort(function (a, b) { return a.name.localeCompare(b.name, 'it'); });
-
   /* ---------- Validazione ---------- */
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   var CER_RE = /^(0[1-9]|1\d|20)\s?\d{2}\s?\d{2}\s?\*?$/;
   var FREE_MAIL = /@(gmail|googlemail|hotmail|outlook|live|msn|yahoo|ymail|libero|virgilio|tiscali|icloud|me|alice|tin|email)\.[a-z.]+$/i;
 
-  /** Partita IVA italiana: 11 cifre + carattere di controllo (algoritmo di Luhn adattato). */
-  function normalizeVat(v) { return String(v || '').replace(/[\s.\-]/g, '').replace(/^IT/i, ''); }
-  function validVat(v) {
-    var n = normalizeVat(v);
+  /* Codice fiscale
+     - società: 11 cifre, con carattere di controllo (stesso algoritmo della partita IVA)
+     - persone fisiche e ditte individuali: 16 caratteri, con lettera di controllo (omocodia ammessa) */
+  var CF_ODD = [1, 0, 5, 7, 9, 13, 15, 17, 19, 21, 2, 4, 18, 20, 11, 3, 6, 8, 12, 14, 16, 10, 22, 25, 24, 23];
+  var CF_PERSON_RE = /^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]$/;
+  function normalizeTaxCode(v) { return String(v || '').replace(/[\s.\-]/g, '').toUpperCase(); }
+  function validCompanyCode(n) {
     if (!/^\d{11}$/.test(n) || /^0{7}/.test(n)) return false;
     var sum = 0;
     for (var i = 0; i < 10; i++) {
@@ -33,6 +31,19 @@
       sum += d;
     }
     return ((10 - (sum % 10)) % 10) === +n.charAt(10);
+  }
+  function validPersonCode(n) {
+    if (!CF_PERSON_RE.test(n)) return false;
+    var sum = 0;
+    for (var i = 0; i < 15; i++) {
+      var c = n.charAt(i), idx = /\d/.test(c) ? +c : c.charCodeAt(0) - 65;   // A-J valgono come 0-9
+      sum += (i % 2 === 0) ? CF_ODD[idx] : idx;
+    }
+    return String.fromCharCode(65 + (sum % 26)) === n.charAt(15);
+  }
+  function validTaxCode(v) {
+    var n = normalizeTaxCode(v);
+    return n.length === 11 ? validCompanyCode(n) : (n.length === 16 && validPersonCode(n));
   }
   function normalizeCer(v) {
     var d = String(v || '').replace(/[^\d*]/g, '');
@@ -58,12 +69,15 @@
     hazardous: function (v) { return v ? '' : 'Indicate se il rifiuto è pericoloso (o “Non so”).'; },
     cer_code: function (v) { return !v || CER_RE.test(v) ? '' : 'Il codice CER ha il formato xx xx xx, per esempio 08 01 11*.'; },
     quantity: function (v) { return v ? '' : 'Selezionate la quantità stimata (o “Non so”).'; },
+    packaging: function (v) { return v ? '' : 'Selezionate la tipologia di confezionamento.'; },
+    packaging_other: function (v, all) { return all.packaging === 'altro' && v.length < 3 ? 'Descrivete brevemente il confezionamento.' : ''; },
     frequency: function (v) { return v ? '' : 'Indicate se il ritiro è una tantum o periodico.'; },
-    province: function (v) { return v ? '' : 'Selezionate la provincia del sito di ritiro.'; },
+    frequency_detail: function (v, all) { return all.frequency === 'periodica' && v.length < 2 ? 'Indicate ogni quanto è previsto il ritiro, per esempio una volta al mese.' : ''; },
+    municipality: function (v) { return /\p{L}{2}/u.test(v) ? '' : 'Inserite il comune del sito di ritiro.'; },
     company_name: function (v) { return v.length >= 2 ? '' : 'Inserite la ragione sociale.'; },
-    vat_number: function (v) {
-      if (!v) return 'Inserite la partita IVA.';
-      return validVat(v) ? '' : 'La partita IVA non è valida: controllate le 11 cifre.';
+    tax_code: function (v) {
+      if (!v) return 'Inserite il codice fiscale.';
+      return validTaxCode(v) ? '' : 'Il codice fiscale non è valido: controllate le 11 cifre (società) o i 16 caratteri.';
     },
     full_name: function (v) { return /\S+\s+\S+/.test(v) ? '' : 'Inserite nome e cognome.'; },
     email: function (v) {
@@ -77,12 +91,14 @@
     privacy: function (v) { return v ? '' : 'Per inviare la richiesta serve il consenso al trattamento dei dati.'; }
   };
   var STEP_FIELDS = {
-    1: ['waste_type', 'waste_type_other', 'hazardous', 'cer_code', 'quantity', 'frequency', 'province'],
-    2: ['company_name', 'vat_number', 'full_name', 'email', 'phone', 'privacy']
+    1: ['waste_type', 'waste_type_other', 'hazardous', 'cer_code', 'packaging', 'packaging_other', 'quantity', 'frequency', 'frequency_detail', 'municipality'],
+    2: ['company_name', 'tax_code', 'full_name', 'email', 'phone', 'privacy']
   };
   var STEP_NAMES = { 1: 'Il rifiuto', 2: 'I contatti' };
-  var SYNC_FIELDS = ['waste_type', 'waste_type_other', 'hazardous', 'cer_code', 'quantity', 'frequency', 'province',
-    'company_name', 'vat_number', 'full_name', 'role', 'email', 'phone', 'notes', 'privacy', 'marketing'];
+  // Campi che mostrano un campo di dettaglio: [campo di dettaglio, campo che lo attiva, valore che lo attiva]
+  var CONDITIONALS = [['waste_type_other', 'waste_type', 'altro'], ['packaging_other', 'packaging', 'altro'], ['frequency_detail', 'frequency', 'periodica']];
+  var SYNC_FIELDS = ['waste_type', 'waste_type_other', 'hazardous', 'cer_code', 'packaging', 'packaging_other', 'quantity', 'frequency', 'frequency_detail', 'municipality',
+    'company_name', 'tax_code', 'full_name', 'role', 'email', 'phone', 'notes', 'privacy', 'marketing'];
 
   /* ---------- Stato condiviso ---------- */
   var instances = [];
@@ -105,13 +121,6 @@
     this.form = wrap.querySelector('form');
     mount.appendChild(this.form);
 
-    var sel = this.form.elements.province;
-    PROVINCES.forEach(function (p) {
-      var o = document.createElement('option');
-      o.value = p.code;
-      o.textContent = p.name + ' (' + p.code + ')';
-      sel.appendChild(o);
-    });
     this.touched = {};
     this.bind();
     T.fillHiddenFields(this.form);
@@ -176,10 +185,12 @@
 
   /* Elementi condizionali e suggerimenti */
   LeadForm.prototype.refreshConditional = function () {
-    var other = this.field('waste_type_other');
-    var show = this.getValue('waste_type') === 'altro';
-    other.hidden = !show;
-    if (!show) this.setError('waste_type_other', '');
+    var self = this;
+    CONDITIONALS.forEach(function (c) {
+      var show = self.getValue(c[1]) === c[2];
+      self.field(c[0]).hidden = !show;
+      if (!show) self.setError(c[0], '');
+    });
   };
 
   LeadForm.prototype.refreshEmailHint = function () {
@@ -243,13 +254,17 @@
       each(function (inst) {
         if (inst === self) return;
         inst.setValue(name, value);
-        if (name === 'waste_type') inst.refreshConditional();
+        if (CONDITIONALS.some(function (c) { return c[1] === name; })) inst.refreshConditional();
         if (name === 'email') inst.refreshEmailHint();
       });
-      if (name === 'waste_type') self.refreshConditional();
+      if (CONDITIONALS.some(function (c) { return c[1] === name; })) self.refreshConditional();
       if (name === 'cer_code' && e.type === 'change') {
         var norm = normalizeCer(value);
         if (norm !== value && CER_RE.test(norm)) { self.setValue('cer_code', norm); each(function (i) { i.setValue('cer_code', norm); }); }
+      }
+      if (name === 'tax_code' && e.type === 'change') {
+        var up = normalizeTaxCode(value);
+        if (up !== value) { self.setValue('tax_code', up); each(function (i) { i.setValue('tax_code', up); }); }
       }
       if (name === 'email') self.refreshEmailHint();
       // Rivalida in tempo reale solo i campi già segnalati o già "toccati"
@@ -333,11 +348,14 @@
       waste_type_other: v.waste_type === 'altro' ? v.waste_type_other : '',
       hazardous: v.hazardous,
       cer_code: v.cer_code ? normalizeCer(v.cer_code) : '',
+      packaging: v.packaging,
+      packaging_other: v.packaging === 'altro' ? v.packaging_other : '',
       quantity: v.quantity,
       frequency: v.frequency,
-      province: v.province,
+      frequency_detail: v.frequency === 'periodica' ? v.frequency_detail : '',
+      municipality: v.municipality,
       company_name: v.company_name,
-      vat_number: normalizeVat(v.vat_number),
+      tax_code: normalizeTaxCode(v.tax_code),
       full_name: v.full_name,
       role: v.role,
       email: v.email,
@@ -432,9 +450,10 @@
       transaction_id: leadId,                                  // per la deduplicazione delle conversioni
       waste_type: p.waste_type,
       hazardous: p.hazardous,
+      packaging: p.packaging,
       quantity: p.quantity,
       frequency: p.frequency,
-      province: p.province,
+      municipality: p.municipality,
       eventCallback: go,
       eventTimeout: 2000
     };
@@ -461,10 +480,9 @@
   }
 
   window.EricaForm = {
-    validVat: validVat,
+    validTaxCode: validTaxCode,
     normalizeCer: normalizeCer,
-    toE164: toE164,
-    provinceCount: PROVINCES.length
+    toE164: toE164
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

@@ -74,11 +74,10 @@ sed -i '' 's/{{DOMINIO}}/offerta.esempio.it/g' index.html
 3. **Albo Gestori Ambientali.** Categorie e classi di iscrizione n. MI40834, per non promettere servizi oltre l'autorizzazione.
 4. **Area geografica.** La pagina dice che raccolta e trasporto coprono tutto il territorio nazionale (dato del sito ufficiale). Se la campagna è mirata a una zona, adeguare FAQ e testo della sezione trasporto.
 5. **Target ed esclusioni.** Settori prioritari, quantità minima, altre esclusioni (amianto, piccolissimi artigiani…): oggi la pagina dice solo che il servizio è dedicato ad aziende e non a privati.
-6. **Elenco dei rifiuti** (sezione "Quali rifiuti gestiamo") e **opzioni del modulo** (tipologie, fasce di quantità, ruoli). Gli esempi sono illustrativi.
+6. **Elenco dei rifiuti** (sezione "Quali rifiuti gestiamo") e **opzioni del modulo** (tipologie, confezionamento, fasce di quantità, ruoli). Gli esempi sono illustrativi.
 7. **Foto reali** di mezzi, impianti o personale (non richieste, consigliate): oggi la sezione trasporto usa illustrazioni a linea schematiche e non rappresentano i mezzi veri.
-8. **Province.** La lista è quella a 107 province. La Sardegna è stata riorganizzata di recente: verificare l'elenco (`PROVINCES` in `assets/js/form.js`).
-9. **`noindex, follow`.** Impostato nella pagina per non competere con ericambiente.it; confermare.
-10. **Informative privacy e cookie** aggiornate con i dati raccolti dal modulo (partita IVA, ruolo) e con il tracciamento descritto in TRACKING.md.
+8. **`noindex, follow`.** Impostato nella pagina per non competere con ericambiente.it; confermare.
+9. **Informative privacy e cookie** aggiornate con i dati raccolti dal modulo (codice fiscale, ruolo) e con il tracciamento descritto in TRACKING.md.
 
 ## Scelte tecniche da conoscere
 
@@ -104,6 +103,6 @@ sed -i '' 's/{{DOMINIO}}/offerta.esempio.it/g' index.html
 
 ## Cosa è stato verificato
 
-Provato nel browser integrato (Chromium) in locale a 360, 768 e 1440 px: nessuno scorrimento orizzontale, pulsante o barra mobile sopra la piega a 360 × 740, modulo a due step con validazione e sincronizzazione tra i due moduli, partita IVA (algoritmo di controllo), eventi `dataLayer`, consenso (nessuna richiesta a Google prima della scelta, GTM dopo il consenso, revoca), cookie con `gclid`/UTM, invio al webhook (simulato e con server di prova, incluso l'errore 500) e redirect a `/grazie/`.
+Provato nel browser integrato (Chromium) in locale a 360, 768 e 1440 px: nessuno scorrimento orizzontale, pulsante o barra mobile sopra la piega a 360 × 740, modulo a due step con validazione e sincronizzazione tra i due moduli, codice fiscale (società a 11 cifre e persone fisiche a 16 caratteri, con controllo), eventi `dataLayer`, consenso (nessuna richiesta a Google prima della scelta, GTM dopo il consenso, revoca), cookie con `gclid`/UTM, invio al webhook (simulato e con server di prova, incluso l'errore 500) e redirect a `/grazie/`.
 
 **Non verificato**: contenitore GTM reale e conversioni in Google Ads (mancano gli ID), webhook n8n reale (CORS), browser Safari/iOS e Android su dispositivi veri, Lighthouse/LCP su rete mobile reale.

@@ -42,7 +42,7 @@ Ogni evento contiene anche `page_area` (valore di `PAGE_AREA` in `config.js`, es
 |---|---|---|
 | `form_start` | Prima interazione con il modulo (una volta per visita) | `form_id`, `form_location` (`hero` o `cta`) |
 | `form_step_2` | Passaggio dal passo 1 al passo 2 (una volta per visita) | `form_id`, `form_location` |
-| `generate_lead` | **Invio riuscito del modulo** (evento principale) | `form_id`, `form_location`, `lead_id`, `transaction_id` (uguale a `lead_id`), `waste_type`, `hazardous`, `quantity`, `frequency`, `province`, `user_data` (vedi sotto) |
+| `generate_lead` | **Invio riuscito del modulo** (evento principale) | `form_id`, `form_location`, `lead_id`, `transaction_id` (uguale a `lead_id`), `waste_type`, `hazardous`, `packaging`, `quantity`, `frequency`, `municipality`, `user_data` (vedi sotto) |
 | `click_to_call` | Clic su un link `tel:`. **Oggi non scatta**: la pagina non contiene numeri di telefono, ma il codice è pronto se se ne reinserisce uno | `link_url`, `link_text`, `link_location` |
 | `click_email` | Clic su un link `mailto:`. **Oggi non scatta**: la pagina non contiene indirizzi email, ma il codice è pronto se se ne reinserisce uno | `link_url`, `link_text`, `link_location` |
 | `thank_you_view` | Apertura di `/grazie/` | `lead_id` (letto da `?lid=`) |
@@ -52,9 +52,10 @@ Valori dei parametri di `generate_lead`:
 
 - `waste_type`: `liquido`, `fango`, `solido`, `imballaggio_contaminato`, `altro`
 - `hazardous`: `si`, `no`, `non_so`
+- `packaging`: `sfuso`, `big_bags`, `cisternette`, `fusti`, `altro`
 - `quantity`: `lt1` (< 1 t), `1_5`, `5_20`, `gt20` (> 20 t), `non_so`
-- `frequency`: `una_tantum`, `periodica`
-- `province`: sigla (es. `MB`)
+- `frequency`: `una_tantum`, `periodica` (la risposta libera su "ogni quanto" va solo al CRM, non al `dataLayer`)
+- `municipality`: comune scritto dall'utente (testo libero: in GA4 ha molti valori diversi, quindi è poco adatto come dimensione di report)
 
 `link_location` identifica il punto della pagina in cui si trova il link (attributo `data-loc`). Oggi la pagina non ha link a telefono o email, quindi `click_to_call` e `click_email` non scattano.
 
@@ -76,7 +77,7 @@ Dopo il successo del webhook la pagina emette `generate_lead` con `eventCallback
 
 ### Variabili (Livello dati)
 
-Crea queste **Variabili del livello dati** (versione 2): `lead_id`, `transaction_id`, `waste_type`, `hazardous`, `quantity`, `frequency`, `province`, `form_location`, `page_area`, `link_location`, `link_url`, `user_data.email`, `user_data.phone_number`.
+Crea queste **Variabili del livello dati** (versione 2): `lead_id`, `transaction_id`, `waste_type`, `hazardous`, `packaging`, `quantity`, `frequency`, `municipality`, `form_location`, `page_area`, `link_location`, `link_url`, `user_data.email`, `user_data.phone_number`.
 
 Per le conversioni avanzate crea una variabile **Dati forniti dall'utente** (tipo *Impostazione manuale*): email = `{{DLV user_data.email}}`, telefono = `{{DLV user_data.phone_number}}`.
 
@@ -120,8 +121,8 @@ Crea le azioni di conversione (Obiettivi → Conversioni → Nuova azione → Si
 | `landing_url`, `referrer` | Indirizzo del primo accesso con i parametri e provenienza |
 | `gclid`, `gbraid`, `wbraid` | Identificativi di clic Google Ads |
 | `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` | Parametri UTM |
-| `waste_type`, `waste_type_other`, `hazardous`, `cer_code`, `quantity`, `frequency`, `province` | Passo 1 (il codice CER è normalizzato nel formato `xx xx xx*`) |
-| `company_name`, `vat_number`, `full_name`, `role`, `email`, `phone`, `phone_e164`, `notes` | Passo 2 (`vat_number` senza spazi né prefisso IT) |
+| `waste_type`, `waste_type_other`, `hazardous`, `cer_code`, `packaging`, `packaging_other`, `quantity`, `frequency`, `frequency_detail`, `municipality` | Passo 1 (il codice CER è normalizzato nel formato `xx xx xx*`; `packaging_other` e `frequency_detail` sono compilati solo se l'utente sceglie "Altro" o "Periodica") |
+| `company_name`, `tax_code`, `full_name`, `role`, `email`, `phone`, `phone_e164`, `notes` | Passo 2 (`tax_code` è il codice fiscale in maiuscolo e senza spazi: 11 cifre per le società, 16 caratteri per persone fisiche e ditte individuali) |
 | `privacy_accepted`, `privacy_accepted_at` | Consenso all'informativa e momento (per la prova) |
 | `marketing_optin` | Casella facoltativa marketing |
 | `consent_cookie_analytics`, `consent_cookie_marketing` | Scelta nel banner cookie |

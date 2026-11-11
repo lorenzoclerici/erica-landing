@@ -71,7 +71,7 @@
       {
         "@type": "Question",
         "name": "Come capisco come classificare il mio rifiuto?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Non serve saperlo prima. Nel modulo ci descrivete il rifiuto e, se lo conoscete, il codice CER: siamo noi a verificarne la classificazione e il trattamento corretto, anche con analisi chimiche, e vi affianchiamo con la nostra consulenza tecnico-legislativa." }
+        "acceptedAnswer": { "@type": "Answer", "text": "Nel modulo ci descrivete il rifiuto e, se lo conoscete, il codice CER: siamo noi a verificarne la classificazione e il trattamento corretto, anche con analisi chimiche, e vi affianchiamo con la nostra consulenza tecnico-legislativa." }
       },
       {
         "@type": "Question",
@@ -91,7 +91,7 @@
       {
         "@type": "Question",
         "name": "In quali zone operate?",
-        "acceptedAnswer": { "@type": "Answer", "text": "La raccolta e il trasporto sono garantiti su tutto il territorio nazionale da trasportatori autorizzati. Indicate la provincia di ritiro nel modulo e vi confermeremo la soluzione per la vostra zona." }
+        "acceptedAnswer": { "@type": "Answer", "text": "La raccolta e il trasporto sono garantiti su tutto il territorio nazionale da trasportatori autorizzati. Indicate il comune di ritiro nel modulo e vi confermeremo la soluzione per la vostra zona." }
       }
     ]
   }
@@ -272,7 +272,7 @@
           <li>
             <span class="steps__n" aria-hidden="true">1</span>
             <h3>Ci scrivete</h3>
-            <p>Compilate il modulo: tipo di rifiuto, quantità, provincia. Se lo conoscete, indicate il codice CER.</p>
+            <p>Compilate il modulo: tipo di rifiuto, confezionamento, quantità, comune. Se lo conoscete, indicate il codice CER.</p>
           </li>
           <li>
             <span class="steps__n" aria-hidden="true">2</span>
@@ -299,7 +299,6 @@
         <header class="section__head">
           <p class="eyebrow">Quali rifiuti gestiamo</p>
           <h2 id="h-rifiuti">Rifiuti speciali, pericolosi e non pericolosi</h2>
-          <p class="lead">Non siete sicuri della classificazione? Descriveteci il rifiuto: ci pensiamo noi. Il servizio è dedicato alle aziende: non è pensato per privati né per rifiuti domestici.</p>
         </header>
         <div class="grid grid--5">
           <article class="card card--tile">
@@ -411,7 +410,7 @@
           <li><svg class="fleet__img" viewBox="0 0 120 70" aria-hidden="true"><use href="#v-pulizie"/></svg><span>Mezzi per pulizie industriali</span></li>
           <li><svg class="fleet__img" viewBox="0 0 120 70" aria-hidden="true"><use href="#v-furgone"/></svg><span>Furgoni per la micro-raccolta di rifiuti speciali pericolosi e non</span></li>
           <li><svg class="fleet__img" viewBox="0 0 120 70" aria-hidden="true"><use href="#v-bonifica"/></svg><span>Attrezzature per la bonifica di serbatoi</span></li>
-          <li class="fleet__cover"><svg class="icon" aria-hidden="true"><use href="#i-pin"/></svg><span><strong>Copertura nazionale</strong>Indicate la provincia di ritiro nel modulo e vi confermiamo la soluzione per la vostra zona.</span></li>
+          <li class="fleet__cover"><svg class="icon" aria-hidden="true"><use href="#i-pin"/></svg><span><strong>Copertura nazionale</strong>Indicate il comune di ritiro nel modulo e vi confermiamo la soluzione per la vostra zona.</span></li>
         </ul>
       </div>
     </section>
@@ -468,7 +467,7 @@
           </details>
           <details>
             <summary>Come capisco come classificare il mio rifiuto?<svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
-            <p>Non serve saperlo prima. Nel modulo ci descrivete il rifiuto e, se lo conoscete, il codice CER: siamo noi a verificarne la classificazione e il trattamento corretto, anche con analisi chimiche, e vi affianchiamo con la nostra consulenza tecnico-legislativa.</p>
+            <p>Nel modulo ci descrivete il rifiuto e, se lo conoscete, il codice CER: siamo noi a verificarne la classificazione e il trattamento corretto, anche con analisi chimiche, e vi affianchiamo con la nostra consulenza tecnico-legislativa.</p>
           </details>
           <details>
             <summary>Gestite anche rifiuti pericolosi?<svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
@@ -484,7 +483,7 @@
           </details>
           <details>
             <summary>In quali zone operate?<svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
-            <p>La raccolta e il trasporto sono garantiti su tutto il territorio nazionale da trasportatori autorizzati. Indicate la provincia di ritiro nel modulo e vi confermeremo la soluzione per la vostra zona.</p>
+            <p>La raccolta e il trasporto sono garantiti su tutto il territorio nazionale da trasportatori autorizzati. Indicate il comune di ritiro nel modulo e vi confermeremo la soluzione per la vostra zona.</p>
           </details>
         </div>
       </div>
@@ -588,6 +587,19 @@
         </div>
 
         <div class="field-row">
+          <div class="field" data-field="packaging">
+            <label for="__ID__-packaging">Tipologia di confezionamento <abbr title="obbligatorio">*</abbr></label>
+            <select id="__ID__-packaging" name="packaging" required aria-describedby="__ID__-packaging-err">
+              <option value="">Selezionate…</option>
+              <option value="sfuso">Sfuso</option>
+              <option value="big_bags">Big bags</option>
+              <option value="cisternette">Cisternette</option>
+              <option value="fusti">Fusti</option>
+              <option value="altro">Altro</option>
+            </select>
+            <p class="field__err" id="__ID__-packaging-err" hidden></p>
+          </div>
+
           <div class="field" data-field="quantity">
             <label for="__ID__-quantity">Quantità stimata <abbr title="obbligatorio">*</abbr></label>
             <select id="__ID__-quantity" name="quantity" required aria-describedby="__ID__-quantity-err">
@@ -600,24 +612,34 @@
             </select>
             <p class="field__err" id="__ID__-quantity-err" hidden></p>
           </div>
-
-          <div class="field" data-field="frequency">
-            <span class="label" id="__ID__-frequency-l">Frequenza <abbr title="obbligatorio">*</abbr></span>
-            <div class="seg" role="radiogroup" aria-labelledby="__ID__-frequency-l" aria-describedby="__ID__-frequency-err">
-              <input type="radio" id="__ID__-fre-u" name="frequency" value="una_tantum"><label for="__ID__-fre-u">Una tantum</label>
-              <input type="radio" id="__ID__-fre-p" name="frequency" value="periodica"><label for="__ID__-fre-p">Periodica</label>
-            </div>
-            <p class="field__err" id="__ID__-frequency-err" hidden></p>
-          </div>
         </div>
 
-        <div class="field" data-field="province">
-          <label for="__ID__-province">Provincia del sito di ritiro <abbr title="obbligatorio">*</abbr></label>
-          <select id="__ID__-province" name="province" required autocomplete="address-level1" aria-describedby="__ID__-province-err">
-            <option value="">Selezionate…</option>
-            <!-- opzioni generate da assets/js/form.js -->
-          </select>
-          <p class="field__err" id="__ID__-province-err" hidden></p>
+        <div class="field" data-field="packaging_other" hidden>
+          <label for="__ID__-packaging_other">Descrivete il confezionamento <abbr title="obbligatorio">*</abbr></label>
+          <input id="__ID__-packaging_other" name="packaging_other" type="text" maxlength="80" autocomplete="off" aria-describedby="__ID__-packaging_other-err">
+          <p class="field__err" id="__ID__-packaging_other-err" hidden></p>
+        </div>
+
+        <div class="field" data-field="frequency">
+          <span class="label" id="__ID__-frequency-l">Frequenza <abbr title="obbligatorio">*</abbr></span>
+          <div class="seg" role="radiogroup" aria-labelledby="__ID__-frequency-l" aria-describedby="__ID__-frequency-err">
+            <input type="radio" id="__ID__-fre-u" name="frequency" value="una_tantum"><label for="__ID__-fre-u">Una tantum</label>
+            <input type="radio" id="__ID__-fre-p" name="frequency" value="periodica"><label for="__ID__-fre-p">Periodica</label>
+          </div>
+          <p class="field__err" id="__ID__-frequency-err" hidden></p>
+        </div>
+
+        <div class="field" data-field="frequency_detail" hidden>
+          <label for="__ID__-frequency_detail">Ogni quanto è previsto il ritiro? <abbr title="obbligatorio">*</abbr></label>
+          <input id="__ID__-frequency_detail" name="frequency_detail" type="text" maxlength="80" placeholder="Per esempio una volta al mese" autocomplete="off" aria-describedby="__ID__-frequency_detail-hint __ID__-frequency_detail-err">
+          <p class="field__hint" id="__ID__-frequency_detail-hint">Per esempio: una volta al mese, 2 volte l’anno, ogni trimestre.</p>
+          <p class="field__err" id="__ID__-frequency_detail-err" hidden></p>
+        </div>
+
+        <div class="field" data-field="municipality">
+          <label for="__ID__-municipality">Comune del sito di ritiro <abbr title="obbligatorio">*</abbr></label>
+          <input id="__ID__-municipality" name="municipality" type="text" maxlength="60" placeholder="Per esempio Monza" autocomplete="address-level2" aria-describedby="__ID__-municipality-err">
+          <p class="field__err" id="__ID__-municipality-err" hidden></p>
         </div>
       </fieldset>
 
@@ -631,10 +653,10 @@
           <p class="field__err" id="__ID__-company_name-err" hidden></p>
         </div>
 
-        <div class="field" data-field="vat_number">
-          <label for="__ID__-vat_number">Partita IVA <abbr title="obbligatorio">*</abbr></label>
-          <input id="__ID__-vat_number" name="vat_number" type="text" inputmode="numeric" maxlength="14" placeholder="11 cifre" autocomplete="off" aria-describedby="__ID__-vat_number-err">
-          <p class="field__err" id="__ID__-vat_number-err" hidden></p>
+        <div class="field" data-field="tax_code">
+          <label for="__ID__-tax_code">Codice fiscale <abbr title="obbligatorio">*</abbr></label>
+          <input id="__ID__-tax_code" name="tax_code" type="text" maxlength="20" placeholder="11 cifre o 16 caratteri" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="__ID__-tax_code-err">
+          <p class="field__err" id="__ID__-tax_code-err" hidden></p>
         </div>
 
         <div class="field-row">
