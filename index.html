@@ -120,6 +120,7 @@
       <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
       <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
       <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+      <symbol id="i-clip" viewBox="0 0 24 24"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></symbol>
       <symbol id="i-droplet" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></symbol>
       <symbol id="i-waves" viewBox="0 0 24 24"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></symbol>
       <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
@@ -690,6 +691,15 @@
             <input id="__ID__-phone" name="phone" type="tel" maxlength="24" autocomplete="tel" aria-describedby="__ID__-phone-err">
             <p class="field__err" id="__ID__-phone-err" hidden></p>
           </div>
+        </div>
+
+        <div class="field" data-field="attachments">
+          <span class="label" id="__ID__-attachments-l">Foto del materiale e analisi del rifiuto <span class="opt">(facoltativo)</span></span>
+          <input type="file" class="upload__input" id="__ID__-attachments" name="attachments" multiple accept="image/jpeg,image/png,image/webp,application/pdf" aria-describedby="__ID__-attachments-hint __ID__-attachments-err">
+          <label for="__ID__-attachments" class="btn btn--ghost-dark btn--sm upload__btn"><svg class="icon" aria-hidden="true"><use href="#i-clip"/></svg>Aggiungi foto o PDF</label>
+          <p class="field__hint" id="__ID__-attachments-hint" data-att-hint>JPG, PNG, WebP o PDF.</p>
+          <ul class="upload__list" data-att-list aria-live="polite" aria-labelledby="__ID__-attachments-l"></ul>
+          <p class="field__err" id="__ID__-attachments-err" role="alert" hidden></p>
         </div>
 
         <div class="field" data-field="notes">

@@ -16,6 +16,16 @@ window.ERICA_CONFIG = {
   FORM_TIMEOUT_MS: 12000,               // tempo massimo di attesa della risposta del webhook
   REDIRECT_MAX_WAIT_MS: 1500,           // attesa massima dell'evento generate_lead prima del redirect
 
+  /* --- Allegati del modulo (facoltativi) ---------------------------------------
+     I file viaggiano nello stesso POST JSON, codificati in base64 (circa +33% di peso).
+     n8n accetta di default richieste fino a 16 MB (variabile N8N_PAYLOAD_SIZE_MAX): se alzate
+     ATTACH_MAX_TOTAL_MB oltre 11 MB va alzato anche quel limite. */
+  ATTACH_MAX_FILES: 5,                  // numero massimo di file
+  ATTACH_MAX_FILE_MB: 8,                // peso massimo di un file (le foto vengono prima ridimensionate)
+  ATTACH_MAX_TOTAL_MB: 10,              // peso massimo di tutti i file insieme
+  ATTACH_IMAGE_MAX_PX: 2000,            // lato lungo massimo delle foto dopo il ridimensionamento
+  ATTACH_TIMEOUT_MS: 60000,             // attesa massima dell'invio quando ci sono allegati
+
   /* --- Pagina / area della campagna ------------------------------------ */
   PAGE_AREA: 'smaltimento-rifiuti-industriali',  // inviata al CRM: utile quando si duplica la pagina
 

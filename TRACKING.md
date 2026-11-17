@@ -42,11 +42,11 @@ Ogni evento contiene anche `page_area` (valore di `PAGE_AREA` in `config.js`, es
 |---|---|---|
 | `form_start` | Prima interazione con il modulo (una volta per visita) | `form_id`, `form_location` (`hero` o `cta`) |
 | `form_step_2` | Passaggio dal passo 1 al passo 2 (una volta per visita) | `form_id`, `form_location` |
-| `generate_lead` | **Invio riuscito del modulo** (evento principale) | `form_id`, `form_location`, `lead_id`, `transaction_id` (uguale a `lead_id`), `waste_type`, `hazardous`, `packaging`, `quantity`, `frequency`, `municipality`, `user_data` (vedi sotto) |
+| `generate_lead` | **Invio riuscito del modulo** (evento principale) | `form_id`, `form_location`, `lead_id`, `transaction_id` (uguale a `lead_id`), `waste_type`, `hazardous`, `packaging`, `quantity`, `frequency`, `municipality`, `attachments_count`, `user_data` (vedi sotto) |
 | `click_to_call` | Clic su un link `tel:`. **Oggi non scatta**: la pagina non contiene numeri di telefono, ma il codice è pronto se se ne reinserisce uno | `link_url`, `link_text`, `link_location` |
 | `click_email` | Clic su un link `mailto:`. **Oggi non scatta**: la pagina non contiene indirizzi email, ma il codice è pronto se se ne reinserisce uno | `link_url`, `link_text`, `link_location` |
 | `thank_you_view` | Apertura di `/grazie/` | `lead_id` (letto da `?lid=`) |
-| `form_submit_error` | Il webhook non risponde o risponde con errore (diagnostico, non è una conversione) | `form_id`, `error_type` (`timeout`, `HTTP 500`, …) |
+| `form_submit_error` | Il webhook non risponde o risponde con errore (diagnostico, non è una conversione) | `form_id`, `error_type` (`timeout`, `HTTP 500`, `HTTP 413` se il corpo supera il limite del webhook, …), `attachments_count` |
 
 Valori dei parametri di `generate_lead`:
 
@@ -56,6 +56,7 @@ Valori dei parametri di `generate_lead`:
 - `quantity`: `lt1` (< 1 t), `1_5`, `5_20`, `gt20` (> 20 t), `non_so`
 - `frequency`: `una_tantum`, `periodica` (la risposta libera su "ogni quanto" va solo al CRM, non al `dataLayer`)
 - `municipality`: comune scritto dall'utente (testo libero: in GA4 ha molti valori diversi, quindi è poco adatto come dimensione di report)
+- `attachments_count`: numero di file allegati (0 se non ne ha aggiunti). Nel `dataLayer` finisce solo il numero: mai nomi né contenuto dei file. Utile per capire quante richieste arrivano già con foto o analisi
 
 `link_location` identifica il punto della pagina in cui si trova il link (attributo `data-loc`). Oggi la pagina non ha link a telefono o email, quindi `click_to_call` e `click_email` non scattano.
 
@@ -77,7 +78,7 @@ Dopo il successo del webhook la pagina emette `generate_lead` con `eventCallback
 
 ### Variabili (Livello dati)
 
-Crea queste **Variabili del livello dati** (versione 2): `lead_id`, `transaction_id`, `waste_type`, `hazardous`, `packaging`, `quantity`, `frequency`, `municipality`, `form_location`, `page_area`, `link_location`, `link_url`, `user_data.email`, `user_data.phone_number`.
+Crea queste **Variabili del livello dati** (versione 2): `lead_id`, `transaction_id`, `waste_type`, `hazardous`, `packaging`, `quantity`, `frequency`, `municipality`, `attachments_count`, `form_location`, `page_area`, `link_location`, `link_url`, `user_data.email`, `user_data.phone_number`.
 
 Per le conversioni avanzate crea una variabile **Dati forniti dall'utente** (tipo *Impostazione manuale*): email = `{{DLV user_data.email}}`, telefono = `{{DLV user_data.phone_number}}`.
 
@@ -111,7 +112,7 @@ Crea le azioni di conversione (Obiettivi → Conversioni → Nuova azione → Si
 
 ## 5. Dati inviati al webhook (CRM)
 
-`POST` con `Content-Type: application/json` a `WEBHOOK_URL`. Campi (tutti al primo livello):
+`POST` con `Content-Type: application/json` a `WEBHOOK_URL`. Campi (tutti al primo livello; `attachments` è un elenco di file):
 
 | Campo | Contenuto |
 |---|---|
@@ -123,10 +124,32 @@ Crea le azioni di conversione (Obiettivi → Conversioni → Nuova azione → Si
 | `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` | Parametri UTM |
 | `waste_type`, `waste_type_other`, `hazardous`, `cer_code`, `packaging`, `packaging_other`, `quantity`, `frequency`, `frequency_detail`, `municipality` | Passo 1 (il codice CER è normalizzato nel formato `xx xx xx*`; `packaging_other` e `frequency_detail` sono compilati solo se l'utente sceglie "Altro" o "Periodica") |
 | `company_name`, `tax_code`, `full_name`, `role`, `email`, `phone`, `phone_e164`, `notes` | Passo 2 (`tax_code` è il codice fiscale in maiuscolo e senza spazi: 11 cifre per le società, 16 caratteri per persone fisiche e ditte individuali) |
+| `attachments_count`, `attachments` | Foto e analisi allegate (facoltative): numero di file ed elenco, vuoto se non ce ne sono. Vedi "Allegati" qui sotto |
 | `privacy_accepted`, `privacy_accepted_at` | Consenso all'informativa e momento (per la prova) |
 | `marketing_optin` | Casella facoltativa marketing |
 | `consent_cookie_analytics`, `consent_cookie_marketing` | Scelta nel banner cookie |
 | `form_elapsed_ms`, `user_language` | Tempo dalla prima interazione e lingua del browser (per filtrare lo spam lato n8n) |
+
+### Allegati
+
+Nel modulo (passo 2) si possono aggiungere, in modo facoltativo, foto del materiale e analisi del rifiuto. Ogni file arriva come elemento di `attachments`:
+
+```json
+"attachments": [
+  { "name": "analisi-chimica.pdf", "type": "application/pdf", "size": 52429, "data": "JVBERi0xLjQK…" }
+]
+```
+
+`data` è il contenuto in **base64**, senza prefisso `data:`. In n8n, dopo il nodo Webhook, i file si trovano in `body.attachments`: per ottenere veri file da salvare o allegare al CRM serve un nodo che li converta (per esempio *Convert to File* con l'operazione *Move Base64 String to File*, oppure un nodo Code), uno per ogni elemento.
+
+Limiti, tutti in `config.js` (`ATTACH_*`): massimo 5 file, 8 MB ciascuno, 10 MB in tutto; formati JPG, PNG, WebP e PDF. Le foto sopra i 700 KB vengono ridimensionate nel browser (lato lungo 2000 px, JPEG): arrivano più leggere e senza dati EXIF, quindi senza la posizione GPS dello scatto.
+
+Cose da sapere:
+
+- **Limite di n8n.** Il base64 pesa circa un terzo in più, quindi 10 MB di file diventano circa 13,4 MB di richiesta. Il limite predefinito di n8n sul corpo è 16 MB (variabile `N8N_PAYLOAD_SIZE_MAX`): se si alzano i limiti degli allegati va alzato anche quello, altrimenti il webhook risponde 413 e l'utente vede l'errore. Controllare anche eventuali limiti di un proxy davanti a n8n (per esempio `client_max_body_size` in Nginx).
+- **Controlli lato server.** I controlli del browser si possono aggirare: in n8n vanno riverificati tipo, estensione e peso di ogni file prima di salvarlo, e se possibile va fatta una scansione antivirus. Non aprire né eseguire mai i file ricevuti.
+- **Tempi di invio.** Con gli allegati l'attesa massima sale da `FORM_TIMEOUT_MS` a `ATTACH_TIMEOUT_MS` (60 s). Se l'invio non riesce, il messaggio d'errore suggerisce di togliere gli allegati e riprovare.
+- **Privacy.** Nome e contenuto dei file non passano mai da GTM né dal `dataLayer` (solo `attachments_count`). I file possono contenere dati personali o riservati: l'informativa privacy deve citarli e va stabilito per quanto tempo si conservano.
 
 Il webhook deve rispondere con uno stato 2xx per far considerare l'invio riuscito. Va abilitato il **CORS** per il dominio della landing (in n8n: *Allowed Origins* sul nodo Webhook); la richiesta ha `Content-Type: application/json`, quindi il browser invia prima una richiesta `OPTIONS`.
 

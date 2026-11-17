@@ -1,7 +1,7 @@
 /* ==========================================================================
    Modulo di richiesta in due step (hero + CTA finale).
    Le due istanze nascono dallo stesso <template id="lead-form-template">, con ID univoci,
-   e condividono lo stato: valori, step corrente, invio in corso.
+   e condividono lo stato: valori, step corrente, allegati, invio in corso.
    ========================================================================== */
 (function () {
   'use strict';
@@ -102,7 +102,7 @@
 
   /* ---------- Stato condiviso ---------- */
   var instances = [];
-  var state = { values: {}, step: 1, status: 'idle', started: false, startTime: 0, step2Tracked: false };
+  var state = { values: {}, step: 1, status: 'idle', started: false, startTime: 0, step2Tracked: false, files: [], queue: Promise.resolve() };
 
   function each(fn) { instances.forEach(fn); }
   function uuid() {
@@ -110,6 +110,118 @@
     return 'lead-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
   }
   function once(fn) { var done = false; return function () { if (done) return; done = true; fn(); }; }
+
+  /* ---------- Allegati (facoltativi) ----------
+     Foto e PDF restano in memoria nello stato condiviso (il campo file si svuota dopo ogni scelta),
+     così i due moduli mostrano sempre lo stesso elenco. Le foto pesanti vengono ridimensionate nel browser:
+     meno da caricare da mobile e, come effetto collaterale, spariscono i dati EXIF (per esempio la posizione GPS). */
+  var MB = 1048576;
+  var ATT = {
+    max: C.ATTACH_MAX_FILES || 5,
+    fileBytes: (C.ATTACH_MAX_FILE_MB || 8) * MB,
+    totalBytes: (C.ATTACH_MAX_TOTAL_MB || 10) * MB,
+    maxPx: C.ATTACH_IMAGE_MAX_PX || 2000,
+    shrinkAbove: 700 * 1024,                 // le foto più leggere restano come sono
+    giveUpAbove: 40 * MB                     // oltre questo peso non si prova nemmeno a decodificare la foto
+  };
+  var ATT_TYPES = { 'image/jpeg': 1, 'image/png': 1, 'image/webp': 1, 'application/pdf': 1 };
+  var ATT_EXT = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', pdf: 'application/pdf' };
+
+  function attType(f) {
+    if (ATT_TYPES[f.type]) return f.type;
+    var ext = (/\.([a-z0-9]+)$/i.exec(f.name) || [])[1];
+    return (ext && ATT_EXT[ext.toLowerCase()]) || '';       // alcuni browser non indicano il tipo del file
+  }
+  function fmtSize(b) { return b < MB ? Math.max(1, Math.round(b / 1024)) + ' KB' : (b / MB).toFixed(1).replace('.', ',') + ' MB'; }
+  function fmtMb(b) { return String(Math.round(b / MB * 10) / 10).replace('.', ','); }
+  function usedBytes() { return state.files.reduce(function (s, a) { return s + a.file.size; }, 0); }
+
+  // Ridimensiona e ricomprime una foto (JPEG). Se qualcosa non funziona restituisce il file originale.
+  function shrinkImage(file) {
+    return new Promise(function (resolve) {
+      if (file.size < ATT.shrinkAbove) return resolve(file);
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        try {
+          var w = img.naturalWidth, h = img.naturalHeight, k = Math.min(1, ATT.maxPx / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * k)), ch = Math.max(1, Math.round(h * k));
+          var cv = document.createElement('canvas');
+          cv.width = cw; cv.height = ch;
+          var ctx = cv.getContext('2d');
+          ctx.fillStyle = '#fff';                            // le PNG trasparenti non diventano nere
+          ctx.fillRect(0, 0, cw, ch);
+          ctx.drawImage(img, 0, 0, cw, ch);
+          cv.toBlob(function (b) {
+            if (!b || b.size >= file.size) return resolve(file);
+            resolve(new File([b], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg', lastModified: file.lastModified }));
+          }, 'image/jpeg', 0.85);
+        } catch (e) { resolve(file); }
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+
+  function addOne(f, errors) {
+    var name = '«' + f.name + '»';
+    var fail = function (msg) { if (errors.indexOf(msg) === -1) errors.push(msg); };
+    var key = [f.name, f.size, f.lastModified].join('|');
+    if (state.files.some(function (a) { return a.key === key; })) return Promise.resolve();   // già aggiunto
+    var type = attType(f);
+    if (!type) { fail(name + ': formato non supportato, usate JPG, PNG, WebP o PDF.'); return Promise.resolve(); }
+    if (!f.size) { fail(name + ': il file è vuoto.'); return Promise.resolve(); }
+    if (state.files.length >= ATT.max) { fail('Potete allegare al massimo ' + ATT.max + ' file.'); return Promise.resolve(); }
+    var isPdf = type === 'application/pdf';
+    if (!isPdf && f.size > ATT.giveUpAbove) { fail(name + ': la foto è troppo pesante.'); return Promise.resolve(); }
+    return (isPdf ? Promise.resolve(f) : shrinkImage(f)).then(function (out) {
+      if (out.size > ATT.fileBytes) { fail(name + ': pesa più di ' + fmtMb(ATT.fileBytes) + ' MB.'); return; }
+      if (usedBytes() + out.size > ATT.totalBytes) { fail('Gli allegati non possono superare ' + fmtMb(ATT.totalBytes) + ' MB in totale.'); return; }
+      state.files.push({ key: key, file: out, type: isPdf || out === f ? type : 'image/jpeg' });
+    });
+  }
+
+  function setAttError(msg) { each(function (i) { i.setError('attachments', msg); }); }
+  function renderAllFiles() { each(function (i) { i.renderFiles(); }); }
+
+  // Le scelte sono messe in coda: se si invia mentre una foto è ancora in elaborazione, l'invio la aspetta.
+  function addFiles(list) {
+    var incoming = Array.prototype.slice.call(list), errors = [];
+    if (!incoming.length) return;
+    state.queue = state.queue.then(function () {
+      return incoming.reduce(function (chain, f) {
+        return chain.then(function () { return addOne(f, errors); });
+      }, Promise.resolve());
+    }).catch(function () {
+      errors.push('Non è stato possibile leggere uno dei file.');
+    }).then(function () {
+      renderAllFiles();
+      setAttError(errors.join(' '));
+    });
+  }
+
+  function readAsBase64(f) {
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () { var s = String(r.result); resolve(s.slice(s.indexOf(',') + 1)); };
+      r.onerror = function () { reject(r.error || new Error('lettura file')); };
+      r.readAsDataURL(f);
+    });
+  }
+  function encodeFiles() {
+    return Promise.all(state.files.map(function (a) {
+      return readAsBase64(a.file).then(function (b64) {
+        return { name: a.file.name, type: a.type, size: a.file.size, data: b64 };
+      });
+    }));
+  }
+  // Copia del payload per il log: senza il contenuto dei file
+  function brief(p) {
+    var o = {};
+    for (var k in p) if (Object.prototype.hasOwnProperty.call(p, k)) o[k] = p[k];
+    o.attachments = (p.attachments || []).map(function (a) { return { name: a.name, type: a.type, size: a.size, data: '[base64, ' + a.data.length + ' caratteri]' }; });
+    return o;
+  }
 
   /* ---------- Istanza del modulo ---------- */
   function LeadForm(mount, loc, uid) {
@@ -122,6 +234,7 @@
     mount.appendChild(this.form);
 
     this.touched = {};
+    this.q('[data-att-hint]').textContent = 'JPG, PNG, WebP o PDF · fino a ' + ATT.max + ' file, ' + fmtMb(ATT.totalBytes) + ' MB in totale.';
     this.bind();
     T.fillHiddenFields(this.form);
   }
@@ -224,6 +337,25 @@
     submit.disabled = on;
     this.q('[data-back]').disabled = on;
     label.innerHTML = on ? '<span class="spinner" aria-hidden="true"></span> Invio in corso…' : 'Invia la richiesta';
+    this.renderFiles();                                         // durante l'invio non si possono più cambiare gli allegati
+  };
+
+  /* Elenco degli allegati (uguale in entrambi i moduli) */
+  LeadForm.prototype.renderFiles = function () {
+    var list = this.q('[data-att-list]'), sending = state.status === 'sending';
+    list.textContent = '';
+    state.files.forEach(function (a) {
+      var li = document.createElement('li'), name = document.createElement('span'), size = document.createElement('span'), rm = document.createElement('button');
+      li.className = 'upload__item';
+      name.className = 'upload__name'; name.textContent = a.file.name; name.title = a.file.name;
+      size.className = 'upload__size'; size.textContent = fmtSize(a.file.size);
+      rm.type = 'button'; rm.className = 'upload__rm'; rm.textContent = '×'; rm.disabled = sending;
+      rm.setAttribute('data-key', a.key);
+      rm.setAttribute('aria-label', 'Rimuovi ' + a.file.name);
+      li.appendChild(name); li.appendChild(size); li.appendChild(rm);
+      list.appendChild(li);
+    });
+    this.q('.upload__input').disabled = sending || state.files.length >= ATT.max;
   };
 
   LeadForm.prototype.showAlert = function (html) {
@@ -287,6 +419,23 @@
       each(function (inst) { if (inst !== self) inst.setError(name, msg); });
     });
 
+    // Allegati: aggiunta e rimozione
+    var picker = this.q('.upload__input');
+    picker.addEventListener('change', function () {
+      var picked = Array.prototype.slice.call(picker.files);
+      picker.value = '';                                         // permette di scegliere di nuovo lo stesso file
+      addFiles(picked);
+    });
+    this.q('[data-att-list]').addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('.upload__rm');
+      if (!btn || btn.disabled) return;
+      var key = btn.getAttribute('data-key');
+      state.files = state.files.filter(function (a) { return a.key !== key; });
+      setAttError('');
+      renderAllFiles();
+      picker.focus();
+    });
+
     this.q('[data-next]').addEventListener('click', function () { self.next(); });
     this.q('[data-back]').addEventListener('click', function () { goStep(1, self); });
     form.addEventListener('submit', function (e) {
@@ -330,7 +479,7 @@
   }
 
   /* ---------- Invio ---------- */
-  function buildPayload(inst, leadId) {
+  function buildPayload(inst, leadId, atts) {
     T.fillHiddenFields(inst.form);
     var v = inst.values(), el = inst.form.elements, now = new Date().toISOString();
     var consent = window.EricaConsent && window.EricaConsent.get();
@@ -362,6 +511,8 @@
       phone: v.phone,
       phone_e164: toE164(v.phone),
       notes: v.notes,
+      attachments_count: atts.length,
+      attachments: atts,                                       // [{ name, type, size, data (base64) }]
       privacy_accepted: true,
       privacy_accepted_at: now,
       marketing_optin: !!v.marketing,
@@ -377,13 +528,14 @@
     var url = C.WEBHOOK_URL;
     if (U.isPlaceholder(url)) {
       if (U.isLocal) {
-        log('webhook (SIMULATO: WEBHOOK_URL non configurato)', payload);
+        log('webhook (SIMULATO: WEBHOOK_URL non configurato)', brief(payload));
         return new Promise(function (res) { setTimeout(res, 700); });
       }
       return Promise.reject(new Error('WEBHOOK_URL non configurato'));
     }
     var ctl = ('AbortController' in window) ? new AbortController() : null;
-    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, C.FORM_TIMEOUT_MS || 12000);
+    var wait = payload.attachments_count > 0 ? (C.ATTACH_TIMEOUT_MS || 60000) : (C.FORM_TIMEOUT_MS || 12000);   // con gli allegati il caricamento è più lungo
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, wait);
     return fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -416,20 +568,29 @@
     state.status = 'sending';
     each(function (i) { i.showAlert(''); i.renderSending(true); });
 
-    var leadId = uuid();
-    var payload = buildPayload(inst, leadId);
-    log('invio modulo', payload);
-
-    send(payload).then(function () {
+    var leadId = uuid(), nFiles = 0, payload;
+    // Prima si aspettano le foto ancora in elaborazione e si leggono gli allegati, poi si invia tutto insieme
+    state.queue.then(encodeFiles).then(function (atts) {
+      nFiles = atts.length;
+      payload = buildPayload(inst, leadId, atts);
+      log('invio modulo', brief(payload));
+      return send(payload);
+    }).then(function () {
       state.status = 'done';
       onSuccess(inst, payload, leadId);
     }).catch(function (err) {
       state.status = 'idle';
       log('errore invio', err);
-      T.push('form_submit_error', { form_id: inst.form.getAttribute('data-form-id'), error_type: String(err && err.name === 'AbortError' ? 'timeout' : (err && err.message) || 'errore').slice(0, 80) });
+      T.push('form_submit_error', {
+        form_id: inst.form.getAttribute('data-form-id'),
+        error_type: String(err && err.name === 'AbortError' ? 'timeout' : (err && err.message) || 'errore').slice(0, 80),
+        attachments_count: nFiles
+      });
+      var msg = 'Non siamo riusciti a inviare la richiesta. Riprovate tra un momento.';
+      if (nFiles) msg += ' Se il problema continua, provate a togliere gli allegati: potrete inviarli in un secondo momento, quando vi ricontatteremo.';
       each(function (i) {
         i.renderSending(false);
-        i.showAlert('Non siamo riusciti a inviare la richiesta. Riprovate tra un momento.');
+        i.showAlert(msg);
       });
       var a = inst.q('[data-alert]');
       if (a && a.scrollIntoView) a.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -454,6 +615,7 @@
       quantity: p.quantity,
       frequency: p.frequency,
       municipality: p.municipality,
+      attachments_count: p.attachments_count,                  // solo il numero: mai nomi o contenuto dei file
       eventCallback: go,
       eventTimeout: 2000
     };

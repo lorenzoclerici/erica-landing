@@ -53,6 +53,7 @@ Il prompt prevede di non inventare dati: dove manca un'informazione c'è un segn
 | `PRIVACY_URL`, `COOKIE_URL` | Indirizzi completi di Privacy Policy e Cookie Policy (si aprono in una nuova scheda) |
 | `CMP` | Solo promemoria del CMP scelto (Iubenda, Cookiebot, …) |
 | `CERTIFICATIONS` | Mettere `false` per nascondere ovunque una certificazione non confermata |
+| `ATTACH_MAX_FILES`, `ATTACH_MAX_FILE_MB`, `ATTACH_MAX_TOTAL_MB`, `ATTACH_IMAGE_MAX_PX`, `ATTACH_TIMEOUT_MS` | Limiti degli allegati facoltativi del modulo (oggi 5 file, 8 MB ciascuno, 10 MB in tutto). Sono già impostati: cambiarli solo se serve, tenendo conto del limite di n8n (TRACKING.md, sezione 5) |
 
 ### In `index.html` e `grazie/index.html` (cerca e sostituisci)
 
@@ -77,7 +78,8 @@ sed -i '' 's/{{DOMINIO}}/offerta.esempio.it/g' index.html
 6. **Elenco dei rifiuti** (sezione "Quali rifiuti gestiamo") e **opzioni del modulo** (tipologie, confezionamento, fasce di quantità, ruoli). Gli esempi sono illustrativi.
 7. **Foto reali** di mezzi, impianti o personale (non richieste, consigliate): oggi la sezione trasporto usa illustrazioni a linea schematiche e non rappresentano i mezzi veri.
 8. **`noindex, follow`.** Impostato nella pagina per non competere con ericambiente.it; confermare.
-9. **Informative privacy e cookie** aggiornate con i dati raccolti dal modulo (codice fiscale, ruolo) e con il tracciamento descritto in TRACKING.md.
+9. **Informative privacy e cookie** aggiornate con i dati raccolti dal modulo (codice fiscale, ruolo, **foto e documenti allegati**) e con il tracciamento descritto in TRACKING.md.
+10. **Allegati nel flusso n8n.** Il webhook deve gestire `attachments` (file in base64), ricontrollare tipo e peso dei file, alzare se serve il limite di 16 MB sul corpo della richiesta e decidere dove salvarli e per quanto tempo (TRACKING.md, sezione 5, "Allegati").
 
 ## Scelte tecniche da conoscere
 
@@ -90,6 +92,7 @@ sed -i '' 's/{{DOMINIO}}/offerta.esempio.it/g' index.html
 - **Banner cookie interno.** Rifiuta e Accetta hanno lo stesso peso; "Gestisci cookie" nel footer permette di cambiare idea in qualsiasi momento (la revoca cancella `erica_attr` e i cookie Google noti). Per usare un CMP di terze parti: `CONSENT_PROVIDER: 'external'`, togliere il banner interno (non viene più mostrato) e, nel callback del CMP, chiamare `EricaConsent.set({ analytics: true|false, marketing: true|false })`. Con un CMP esterno è il CMP a gestire i valori predefiniti di Consent Mode e GTM parte subito.
 - **Eventi in più** rispetto al prompt: `thank_you_view` (apertura di `/grazie/`) e `form_submit_error` (webhook in errore). Servono per controllare il funzionamento.
 - **Campi in più nel payload**: `lead_id`, `page_area`, `phone_e164`, il consenso cookie e `form_elapsed_ms` (vedi TRACKING.md, sezione 5).
+- **Allegati facoltativi (foto del materiale e analisi del rifiuto).** Nel passo 2 del modulo, sopra le note: JPG, PNG, WebP o PDF. I file restano in memoria nel browser e partono nello stesso POST JSON del modulo, codificati in base64, così il webhook resta uno solo e non servono altri endpoint. Le foto pesanti vengono ridimensionate prima dell'invio (meno peso da mobile, niente dati GPS). Nel `dataLayer` finisce solo `attachments_count`.
 
 ## Come duplicare la pagina per un'altra area della campagna
 
@@ -103,6 +106,6 @@ sed -i '' 's/{{DOMINIO}}/offerta.esempio.it/g' index.html
 
 ## Cosa è stato verificato
 
-Provato nel browser integrato (Chromium) in locale a 360, 768 e 1440 px: nessuno scorrimento orizzontale, pulsante o barra mobile sopra la piega a 360 × 740, modulo a due step con validazione e sincronizzazione tra i due moduli, codice fiscale (società a 11 cifre e persone fisiche a 16 caratteri, con controllo), eventi `dataLayer`, consenso (nessuna richiesta a Google prima della scelta, GTM dopo il consenso, revoca), cookie con `gclid`/UTM, invio al webhook (simulato e con server di prova, incluso l'errore 500) e redirect a `/grazie/`.
+Provato nel browser integrato (Chromium) in locale a 360, 768 e 1440 px: nessuno scorrimento orizzontale, pulsante o barra mobile sopra la piega a 360 × 740, modulo a due step con validazione e sincronizzazione tra i due moduli, codice fiscale (società a 11 cifre e persone fisiche a 16 caratteri, con controllo), eventi `dataLayer`, consenso (nessuna richiesta a Google prima della scelta, GTM dopo il consenso, revoca), cookie con `gclid`/UTM, invio al webhook (simulato e con server di prova, incluso l'errore 500) e redirect a `/grazie/`. Allegati: aggiunta e rimozione sincronizzate tra i due moduli, rifiuto dei formati non ammessi, limiti di numero e peso, ridimensionamento delle foto (una foto da 11,5 MB è arrivata come JPEG da 1,5 MB, 2000 × 1500 px), file ricevuti dal webhook di prova identici a quelli inviati, invio senza allegati (`attachments` vuoto), errore del webhook con allegati e layout a 360 px.
 
-**Non verificato**: contenitore GTM reale e conversioni in Google Ads (mancano gli ID), webhook n8n reale (CORS), browser Safari/iOS e Android su dispositivi veri, Lighthouse/LCP su rete mobile reale.
+**Non verificato**: contenitore GTM reale e conversioni in Google Ads (mancano gli ID), webhook n8n reale (CORS e ricezione degli allegati), scelta delle foto da fotocamera o galleria su iPhone e Android (formato HEIC compreso), browser Safari/iOS e Android su dispositivi veri, Lighthouse/LCP su rete mobile reale.

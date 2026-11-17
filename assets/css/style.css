@@ -306,6 +306,21 @@ h2, h3 { color: var(--blue); }
 .seg input:checked + label { background: var(--blue); border-color: var(--blue); color: #fff; }
 .seg input:focus-visible + label { outline: 3px solid rgba(41, 153, 56, .55); outline-offset: 2px; }
 
+/* Allegati (facoltativi) */
+.upload__input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.field .upload__btn { display: inline-flex; margin: 0; color: var(--blue); font-size: .95rem; font-weight: 600; cursor: pointer; }
+.upload__input:focus-visible + .upload__btn { outline: 3px solid rgba(41, 153, 56, .55); outline-offset: 2px; }
+.upload__input:disabled + .upload__btn { opacity: .55; cursor: not-allowed; }
+.upload__list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.upload__list:empty { display: none; }
+.upload__item { display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 12px; border: 1px solid var(--field-border); border-radius: 10px; background: #fff; }
+.upload__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .92rem; color: var(--ink); }
+.upload__size { flex: none; font-size: .82rem; color: var(--grey-600); }
+.upload__rm { flex: none; width: 40px; height: 40px; border: 0; border-radius: 8px; background: none; color: var(--blue); font: 400 1.5rem/1 var(--font); cursor: pointer; }
+.upload__rm:hover { background: var(--blue-50); }
+.upload__rm:focus-visible { outline: 3px solid rgba(41, 153, 56, .55); outline-offset: 0; }
+.upload__rm:disabled { opacity: .45; cursor: not-allowed; }
+
 .field--check { display: grid; grid-template-columns: 24px 1fr; gap: 0 12px; align-items: start; margin-bottom: 12px; }
 .field--check input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--green-600); cursor: pointer; }
 .field--check label { margin: 0; font-size: .9rem; font-weight: 400; line-height: 1.45; cursor: pointer; }
